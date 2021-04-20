@@ -210,6 +210,42 @@ class RipperTrackerTest < Minitest::Test
     assert_equal ["single/\#{quote}"], tracker.dependencies
   end
 
+  def test_dependencies_skip_commented_out_renders
+    template = FakeTemplate.new(%q{
+      <%# render "double/#{quote}" %>
+    }, :erb)
+    tracker = make_tracker("interpolation/_string", template)
+
+    assert_equal [], tracker.dependencies
+  end
+
+  def test_dependencies_skip_unknown_options
+    template = FakeTemplate.new(%{
+      <%= render partial: "unknown_render_call", unknown_render_option: "yes" %>
+    }, :erb)
+    tracker = make_tracker("interpolation/_string", template)
+
+    assert_equal [], tracker.dependencies
+  end
+
+  def test_dependencies_finds_spacer_templates
+    template = FakeTemplate.new(%{
+      <%= render partial: "messages/message", collection: books, spacer_template: "messages/message_spacer" %>
+    }, :erb)
+    tracker = make_tracker("messages/show", template)
+
+    assert_equal ["messages/message_spacer", "messages/message"], tracker.dependencies
+  end
+
+  def test_dependencies_skip_commented_out_renders
+    template = FakeTemplate.new(%{
+      <%# render "messages/legacy_message" %>
+    }, :erb)
+    tracker = make_tracker("messages/show", template)
+
+    assert_equal [], tracker.dependencies
+  end
+
   def test_dependencies_skip_unknown_options
     template = FakeTemplate.new(%{
       <%= render partial: "unknown_render_call", unknown_render_option: "yes" %>

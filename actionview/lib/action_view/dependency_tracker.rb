@@ -35,6 +35,6 @@ module ActionView
       @trackers.delete(handler)
     end
 
-    register_tracker :erb, ERBTracker
+    register_tracker :erb, RipperTracker
   end
 end
