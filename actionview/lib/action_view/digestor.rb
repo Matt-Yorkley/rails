@@ -43,10 +43,11 @@ module ActionView
       def tree(name, finder, partial = false, seen = {})
         logical_name = name.gsub(%r|/_|, "/")
         interpolated = name.include?("#")
+        component    = name.end_with?("Component")
 
         path = TemplatePath.parse(name)
 
-        if !interpolated && (template = find_template(finder, path.name, [path.prefix], partial))
+        if !interpolated && (template = find_template(finder, path.name, [path.prefix], partial, component))
           if node = seen[template.identifier] # handle cycles in the tree
             node
           else
@@ -54,7 +55,7 @@ module ActionView
 
             deps = DependencyTracker.find_dependencies(name, template, finder.view_paths)
             deps.uniq { |n| n.gsub(%r|/_|, "/") }.each do |dep_file|
-              node.children << tree(dep_file, finder, true, seen)
+              node.children << tree(dep_file, finder, !component, seen)
             end
             node
           end
@@ -68,10 +69,23 @@ module ActionView
       end
 
       private
-        def find_template(finder, name, prefixes, partial)
+        def find_template(finder, name, prefixes, partial, component)
+          if component
+            finder = component_finder
+            partial = false
+            name = name.underscore
+          end
+
           finder.disable_cache do
             finder.find_all(name, prefixes, partial, []).first
           end
+        end
+
+        def component_finder
+          @component_finder ||= ActionView::LookupContext.new(
+            ActionView::PathSet.new([Rails.root.join("app/components")]),
+            formats: [:rb]
+          )
         end
     end
 
