@@ -59,6 +59,12 @@ module ActionView
         \s*                          # followed by optional spaces
       /x
 
+      # A view component class e.g. Example::Component.new("foo") => "Example::Component"
+      COMPONENT = /
+        (?<component>[A-Z][A-Za-z:]*Component)  # a component class name captured as COMPONENT
+        \.                                      # followed by .
+      /x
+
       # Part of any hash containing the :layout key
       LAYOUT_HASH_KEY = /
         (?:\blayout:|:layout\s*=>)   # layout key in either old or new style hash syntax
@@ -76,10 +82,13 @@ module ActionView
       #   (@topic)         => "topics/topic"
       #    topics          => "topics/topic"
       #   (message.topics) => "topics/topic"
+      #
+      #   CommentComponent.new("example")           => "CommentComponent"
+      #   Topic::Component.with_collection(@topics) => "Topic::Component"
       RENDER_ARGUMENTS = /\A
-        (?:\s*\(?\s*)                                  # optional opening paren surrounded by spaces
-        (?:.*?#{PARTIAL_HASH_KEY}|#{LAYOUT_HASH_KEY})? # optional hash, up to the partial or layout key declaration
-        (?:#{STRING}|#{VARIABLE_OR_METHOD_CHAIN})      # finally, the dependency name of interest
+        (?:\s*\(?\s*)                                          # optional opening paren surrounded by spaces
+        (?:.*?#{PARTIAL_HASH_KEY}|#{LAYOUT_HASH_KEY})?         # optional hash, up to the partial or layout key declaration
+        (?:#{COMPONENT}|#{STRING}|#{VARIABLE_OR_METHOD_CHAIN}) # finally, the dependency name of interest
       /xm
 
       LAYOUT_DEPENDENCY = /\A
@@ -133,6 +142,7 @@ module ActionView
             match = Regexp.last_match
             add_dynamic_dependency(render_dependencies, match[:dynamic])
             add_static_dependency(render_dependencies, match[:static], match[:quote])
+            add_component_dependency(render_dependencies, match[:component])
           end
         end
 
@@ -155,6 +165,10 @@ module ActionView
               dependencies << "#{directory}/#{dependency}"
             end
           end
+        end
+
+        def add_component_dependency(dependencies, dependency)
+          dependencies << dependency if dependency
         end
 
         def resolve_directories(wildcard_dependencies)
