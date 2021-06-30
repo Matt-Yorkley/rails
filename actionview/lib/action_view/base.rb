@@ -165,6 +165,9 @@ module ActionView #:nodoc:
     # Annotate rendered view with file names
     cattr_accessor :annotate_rendered_view_with_filenames, default: false
 
+    # Specify path for components
+    cattr_accessor :components_path, default: "app/components"
+
     class_attribute :_routes
     class_attribute :logger
 
