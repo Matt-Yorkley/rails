@@ -29,7 +29,9 @@ module ActionView
       @trackers.delete(handler)
     end
 
-    class ERBTracker # :nodoc:
+    # Base dependency tracker. Enumerates render dependencies used for building template digests.
+    # Compatible with ERB, HAML, and potentially other formats.
+    class ERBTracker
       EXPLICIT_DEPENDENCY = /# Template Dependency: (\S+)/
 
       # A valid ruby identifier - suitable for class, method and specially variable names
