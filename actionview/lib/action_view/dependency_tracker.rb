@@ -139,10 +139,10 @@ module ActionView
 
         def add_dependencies(render_dependencies, arguments, pattern)
           arguments.scan(pattern) do
-            match = Regexp.last_match
-            add_dynamic_dependency(render_dependencies, match[:dynamic])
-            add_static_dependency(render_dependencies, match[:static], match[:quote])
-            add_component_dependency(render_dependencies, match[:component])
+            match = Regexp.last_match.named_captures
+            add_dynamic_dependency(render_dependencies, match["dynamic"])
+            add_static_dependency(render_dependencies, match["static"], match["quote"])
+            add_component_dependency(render_dependencies, match["component"])
           end
         end
 
