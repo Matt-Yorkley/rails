@@ -1,0 +1,2 @@
+class MockComponent
+end

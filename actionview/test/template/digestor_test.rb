@@ -7,8 +7,8 @@ require "action_view/dependency_tracker"
 class FixtureFinder < ActionView::LookupContext
   FIXTURES_DIR = File.expand_path("../fixtures/digestor", __dir__)
 
-  def self.build(details = {})
-    new(ActionView::PathSet.new(["digestor", "digestor/api"]), details, [])
+  def self.build(details = {}, view_paths = nil)
+    new(ActionView::PathSet.new(view_paths || ["digestor", "digestor/api"]), details, [])
   end
 end
 
@@ -388,5 +388,67 @@ class TemplateDigestorTest < ActionView::TestCase
 
     def remove_template(template_name)
       File.delete("digestor/#{template_name}.html.erb")
+    end
+end
+
+class ComponentDigestorTest < TemplateDigestorTest
+  class MockComponentTracker
+    def self.call(name, _template, _view_paths = nil)
+      [name.underscore]
+    end
+  end
+
+  class MockRootPath
+    cattr_accessor :root_path
+
+    def join(path)
+      "#{root_path}/#{path}"
+    end
+  end
+
+  def setup
+    super
+
+    FileUtils.mkdir "#{@tmp_dir}/app"
+    FileUtils.cp_r File.expand_path("../fixtures/components", __dir__), "#{@tmp_dir}/app"
+
+    unless Rails.respond_to?(:root)
+      MockRootPath.root_path = @tmp_dir
+      @defined_root = true
+      def Rails.root; MockRootPath.new; end
+    end
+
+    Mime::Type.register "text/ruby", :rb
+    ActionView::DependencyTracker.register_tracker :rb, MockComponentTracker
+  end
+
+  def teardown
+    super
+
+    Rails.instance_eval { undef :root } if defined?(@defined_root)
+
+    Mime::Type.unregister :rb
+    ActionView::DependencyTracker.remove_tracker :rb
+  end
+
+  def test_changes_in_component_class_affect_digest
+    assert_digest_difference("view/parallax") do
+      change_component_file("app/components/mock_component.rb")
+    end
+  end
+
+  def test_changes_in_component_template_affect_digest
+    assert_digest_difference("view/parallax") do
+      change_component_file("app/components/mock_component.html.erb")
+    end
+  end
+
+  private
+    def change_component_file(file)
+      File.open("#{@tmp_dir}/#{file}", "a") { |f| f.write("\n# Modified") }
+    end
+
+    def finder
+      @finder ||= FixtureFinder.build({}, ["digestor", "app/components"])
     end
 end
