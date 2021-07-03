@@ -272,4 +272,21 @@ class RipperTrackerTest < Minitest::Test
 
     assert_equal [], tracker.dependencies
   end
+
+  def test_renderable_class_dependency
+    template = FakeTemplate.new("<%= render ExampleRenderable.new %>", :erb)
+    tracker = make_tracker("example/page", template)
+
+    assert_equal ["ExampleRenderable"], tracker.dependencies
+  end
+
+  def test_mixed_renderable_and_partial_dependencies
+    template = FakeTemplate.new("
+      <%= render Namespaced::Renderable.with_collection(@objects) %>
+      <%= render partial: 'regular_partial' %>
+    ", :erb)
+    tracker = make_tracker("example/page", template)
+
+    assert_equal ["Namespaced::Renderable", "example/regular_partial"], tracker.dependencies
+  end
 end
