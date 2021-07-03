@@ -37,11 +37,13 @@ module ActionView
       #   render(template: "foo", ...)
       # or
       #   render(partial: "foo", ...)
-      def normalize_args(string, options_hash)
-        if options_hash
-          { partial: string, locals: options_hash }
+      def normalize_args(primary_arg, options_hash)
+        if primary_arg.class_call?
+          { renderable: primary_arg }
+        elsif options_hash
+          { partial: primary_arg, locals: options_hash }
         else
-          { partial: string }
+          { partial: primary_arg }
         end
       end
 
@@ -112,6 +114,8 @@ module ActionView
 
         if node.string?
           template = resolve_path_directory(node.to_string)
+        elsif render_type == :renderable
+          template = node.calling_class_name
         else
           if node.variable_reference?
             dependency = node.variable_name.sub(/\A(?:\$|@{1,2})/, "")
