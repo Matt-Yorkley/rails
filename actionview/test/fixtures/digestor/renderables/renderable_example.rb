@@ -1,0 +1,2 @@
+class Renderables::RenderableExample
+end
